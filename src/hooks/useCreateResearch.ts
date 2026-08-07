@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { createResearch } from "@/services/research.service";
-import { ResearchFormData, ResearchResponse } from "@/types/research";
+import type { ResearchFormData, ResearchResponse } from "@/types/research";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 

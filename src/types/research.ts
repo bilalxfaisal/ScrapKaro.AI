@@ -18,10 +18,20 @@ export const researchFormSchema = z.object({
 
 export type ResearchFormData = z.infer<typeof researchFormSchema>
 
+export interface ResearchResult {
+  title: string;
+  url: string;
+  source: string;
+  type: string;
+  publishedDate?: string;
+  author?: string;
+}
+
 export interface ResearchResponse {
   topic: string;
   goal: string;
   searchQueries: string[];
   keywords: string[];
   recommendedSources: string[];
+  results: ResearchResult[];
 }

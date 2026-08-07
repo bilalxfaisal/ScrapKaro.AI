@@ -104,6 +104,31 @@ export const ResultsPage: React.FC = () => {
             </ul>
           </section>
 
+          <section>
+            <div className="flex items-center gap-2 mb-3 text-zinc-200">
+              <BookOpen className="h-5 w-5 text-rose-400" />
+              <h3 className="text-xl font-semibold">Search Results</h3>
+            </div>
+            <div className="space-y-4 pl-7">
+              {data.results?.length ? (
+                data.results.map((result, idx) => (
+                  <a
+                    key={idx}
+                    href={result.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-violet-500 transition"
+                  >
+                    <p className="text-white font-semibold">{result.title}</p>
+                    <p className="text-zinc-500 text-sm mt-1">{result.source}</p>
+                  </a>
+                ))
+              ) : (
+                <p className="text-zinc-500">No results were returned for this research request.</p>
+              )}
+            </div>
+          </section>
+
         </CardContent>
       </Card>
     </div>

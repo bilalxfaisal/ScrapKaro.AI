@@ -26,12 +26,11 @@ export class ResearchController {
   @ApiResponse({
     status: 200,
     description:
-      'AI-generated research plan and real Exa search results returned successfully. ' +
+      'AI-generated research plan, real Exa search results, and Gemini source evaluations returned successfully. ' +
       'research.plan contains: researchGoal (string), searchQueries (string[]), keywords (string[]), ' +
-      'recommendedSources (string[]). research.results is an array of SearchResult objects, each with: ' +
+      'recommendedSources (string[]). research.results is an array of SearchResult objects with optional evaluation metadata. Each item includes: ' +
       'title (string), url (string), description (string, optional), publishedDate (string, optional), ' +
-      'author (string, optional), source (string, optional — the result\'s domain), and ' +
-      'type ("article" | "pdf" | "website", determined deterministically from the URL).',
+      'author (string, optional), source (string, optional), type ("article" | "pdf" | "website"), and evaluation (object with relevanceScore, qualityScore, sourceType, recommendation, explanation).',
     schema: {
       example: {
         success: true,
