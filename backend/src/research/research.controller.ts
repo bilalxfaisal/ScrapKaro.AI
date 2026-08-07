@@ -18,12 +18,20 @@ export class ResearchController {
   @ApiOperation({
     summary: 'Create a research request',
     description:
-      'Submit a research request. The backend sends the data to Gemini and returns a structured research plan.',
+      'Submit a research request. The backend sends the data to Gemini to generate a structured research plan ' +
+      '(research.plan), then runs the plan\'s searchQueries (max 5) against Exa to fetch real internet results, ' +
+      'normalizes/deduplicates them, and returns them alongside the plan (research.results).',
   })
   @ApiBody({ type: CreateResearchDto })
   @ApiResponse({
     status: 200,
-    description: 'AI-generated research plan returned successfully.',
+    description:
+      'AI-generated research plan and real Exa search results returned successfully. ' +
+      'research.plan contains: researchGoal (string), searchQueries (string[]), keywords (string[]), ' +
+      'recommendedSources (string[]). research.results is an array of SearchResult objects, each with: ' +
+      'title (string), url (string), description (string, optional), publishedDate (string, optional), ' +
+      'author (string, optional), source (string, optional — the result\'s domain), and ' +
+      'type ("article" | "pdf" | "website", determined deterministically from the URL).',
     schema: {
       example: {
         success: true,
@@ -55,6 +63,24 @@ export class ResearchController {
               'ACL Anthology',
             ],
           },
+          results: [
+            {
+              title: 'A Survey of Large Language Models',
+              url: 'https://arxiv.org/abs/2303.18223',
+              publishedDate: '2023-03-31',
+              author: 'Wayne Xin Zhao et al.',
+              source: 'arxiv.org',
+              type: 'article',
+            },
+            {
+              title: 'Attention Is All You Need',
+              url: 'https://arxiv.org/pdf/1706.03762.pdf',
+              publishedDate: '2017-06-12',
+              author: 'Ashish Vaswani et al.',
+              source: 'arxiv.org',
+              type: 'pdf',
+            },
+          ],
         },
       },
     },

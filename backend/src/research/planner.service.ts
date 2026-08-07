@@ -17,10 +17,10 @@ export interface ResearchPlan {
 export class PlannerService {
   private readonly logger = new Logger(PlannerService.name);
 
-  constructor(private readonly aiService: AiService) {}
+  constructor(private readonly aiService: AiService) { }
 
   async generatePlan(dto: CreateResearchDto): Promise<ResearchPlan> {
-    const { topic, purpose, sources, focus } = dto;
+    const { topic, purpose, sourceTypes, focus } = dto;
 
     const systemPrompt = `You are an expert research assistant. Analyze the user's research goal and create a structured research plan.
 
@@ -41,7 +41,7 @@ Rules:
 
     const userPrompt = `Research Topic: ${topic}
 Purpose: ${purpose}
-Requested Sources: ${sources.join(', ')}
+Requested Sources: ${sourceTypes.join(', ')}
 Focus Area: ${focus ?? 'Not specified'}
 
 Please generate a research plan for this request.`;

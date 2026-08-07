@@ -17,3 +17,11 @@ export const researchFormSchema = z.object({
 })
 
 export type ResearchFormData = z.infer<typeof researchFormSchema>
+
+export interface ResearchResponse {
+  topic: string;
+  goal: string;
+  searchQueries: string[];
+  keywords: string[];
+  recommendedSources: string[];
+}

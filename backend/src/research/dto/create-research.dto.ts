@@ -35,7 +35,7 @@ export class CreateResearchDto {
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })
-  sources: string[];
+  sourceTypes: string[];
 
   @ApiPropertyOptional({
     description: 'Optional focus area for the research',
