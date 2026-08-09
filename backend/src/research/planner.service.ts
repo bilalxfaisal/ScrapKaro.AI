@@ -22,35 +22,21 @@ export class PlannerService {
   async generatePlan(dto: CreateResearchDto): Promise<ResearchPlan> {
     const { topic, purpose, sourceTypes, focus } = dto;
 
-    const systemPrompt = `You are an expert research assistant. Analyze the user's research goal and create a structured research plan.
+    const systemPrompt = `You are an expert research assistant. Return only a JSON object with these exact fields: researchGoal, searchQueries, keywords, recommendedSources. Use concise values. Do not add any text outside the JSON.`;
 
-You MUST respond with a valid JSON object containing exactly these fields:
-{
-  "researchGoal": "<a clear, one-sentence description of the research objective>",
-  "searchQueries": ["<query 1>", "<query 2>", "<query 3>", "<query 4>", "<query 5>"],
-  "keywords": ["<keyword 1>", "<keyword 2>", "<keyword 3>", "<keyword 4>", "<keyword 5>"],
-  "recommendedSources": ["<source type 1>", "<source type 2>", "<source type 3>"]
-}
-
-Rules:
-- researchGoal: a single, clear sentence describing what the researcher wants to achieve.
-- searchQueries: 4-6 specific, targeted search queries the user should use.
-- keywords: 5-8 important academic/technical keywords relevant to the topic.
-- recommendedSources: 2-4 specific source types most appropriate for this research (e.g. "PubMed", "IEEE Xplore", "arXiv", "Google Scholar").
-- Do NOT include any text outside the JSON object.`;
-
-    const userPrompt = `Research Topic: ${topic}
+    const userPrompt = `Topic: ${topic}
 Purpose: ${purpose}
-Requested Sources: ${sourceTypes.join(', ')}
-Focus Area: ${focus ?? 'Not specified'}
-
-Please generate a research plan for this request.`;
+Sources: ${sourceTypes.join(', ')}
+Focus: ${focus ?? 'Not specified'}`;
 
     this.logger.log(`Generating research plan for topic: "${topic}"`);
 
     let raw: string;
     try {
-      raw = await this.aiService.generateCompletion(systemPrompt, userPrompt);
+      raw = await this.aiService.generateCompletion(systemPrompt, userPrompt, {
+        model: 'gemini-3.6-flash',
+        maxOutputTokens: 1200,
+      });
     } catch (error) {
       throw error;
     }

@@ -61,14 +61,20 @@ export class SearchService {
   }
 
   private normalize(item: ExaApiSearchResultItem): SearchResult {
+    const cleanedUrl = this.cleanUrl(item.url);
     return {
-      title: item.title?.trim() || item.url,
-      url: item.url,
+      title: item.title?.trim() || cleanedUrl,
+      url: cleanedUrl,
       publishedDate: item.publishedDate ?? undefined,
       author: item.author ?? undefined,
-      source: this.extractSource(item.url),
-      type: this.categorize(item.url),
+      source: this.extractSource(cleanedUrl),
+      type: this.categorize(cleanedUrl),
     };
+  }
+
+  private cleanUrl(url: string): string {
+    // Remove markdown syntax, escaped characters, and backslashes
+    return url.replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '').replace(/\\\\/g, '').trim();
   }
 
   /** Deterministic, non-AI URL-based categorization (per project rules). */
@@ -80,14 +86,24 @@ export class SearchService {
       return 'website';
     }
 
+    const domain = parsed.hostname.replace(/^www\./, '').toLowerCase();
     const path = parsed.pathname.toLowerCase();
+
+    // academic: arxiv.org, ieee.org, acm.org, springer.com, elsevier.com, university domains (.edu)
+    const academicDomains = ['arxiv.org', 'ieee.org', 'acm.org', 'springer.com', 'elsevier.com'];
+    if (academicDomains.includes(domain) || domain.endsWith('.edu')) {
+      return 'academic';
+    }
 
     if (path.endsWith('.pdf')) {
       return 'pdf';
     }
 
-    // A bare root path (the domain's homepage) reads as a generic website;
-    // anything with a deeper path reads as a specific article/page.
+    const isArticle = path.includes('/blog/') || path.includes('/news/') || path.includes('/tutorial/') || path.includes('/post/');
+    if (isArticle) {
+      return 'article';
+    }
+
     const isRootPath = path === '' || path === '/';
     return isRootPath ? 'website' : 'article';
   }

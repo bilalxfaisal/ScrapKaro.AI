@@ -1,7 +1,7 @@
 /**
  * Classification of a search result, derived deterministically from its URL.
  */
-export type SearchResultType = 'article' | 'pdf' | 'website';
+export type SearchResultType = 'academic' | 'article' | 'pdf' | 'website';
 
 /**
  * Provider-independent shape for a single search result.

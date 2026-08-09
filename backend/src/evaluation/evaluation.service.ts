@@ -1,15 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Type } from '@google/genai';
 import { AiService } from '../ai/ai.service';
 import { SearchResult } from '../common/search-result.interface';
 import {
   EvaluatedSource,
+  RawSourceEvaluation,
   SourceEvaluation,
   EvaluatedSourceType,
   EvaluationRecommendation,
 } from './evaluation.interface';
 
-const MAX_EVALUATION_SOURCES = 20;
-const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set(['academic', 'article', 'website']);
+const MAX_EVALUATION_SOURCES = 5;
+const EVALUATION_BATCH_SIZE = 2;
+const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set(['academic', 'article', 'website', 'pdf']);
 const VALID_RECOMMENDATIONS: ReadonlySet<string> = new Set(['high', 'medium', 'low']);
 
 @Injectable()
@@ -37,68 +40,75 @@ export class EvaluationService {
     }
 
     const sourcePayload = limitedSources.map((source) => ({
-      title: source.title,
-      url: source.url,
-      description: source.description ?? '',
+      title: this.normalizePromptText(source.title),
+      url: this.normalizePromptText(source.url),
+      description: this.normalizePromptText(source.description ?? ''),
     }));
 
-    const systemPrompt = `You are an expert academic research assistant. Evaluate the quality and relevance of these sources for the user's research goal.
+    const systemPrompt = `You are an academic research evaluator. Return a JSON array of objects. Each object must have exactly these fields: url, relevanceScore, qualityScore, sourceType, recommendation, explanation. Use integers 0-100 for scores. Use one of these sourceType values: academic, article, website, pdf. Use one of these recommendations: high, medium, low. Do not include markdown or extra text.`;
 
-Return ONLY valid JSON, with no markdown, explanation, or extra text. The output must be a JSON array.
-Each item in the array must contain the following fields:
-- title (string)
-- url (string)
-- relevanceScore (integer 0-100)
-- qualityScore (integer 0-100)
-- sourceType ("academic" | "article" | "website")
-- recommendation ("high" | "medium" | "low")
-- explanation (string)
-
-Rank the sources according to:
-1. Relevance to the research topic and goal
-2. Academic credibility
-3. Source authority
-4. Recency
-5. Usefulness for the user's purpose.
-`;
-
-    const userPrompt = `Research Topic:
-${topic}
-
-Research Goal:
-${researchGoal}
-
-Sources:
-${JSON.stringify(sourcePayload, null, 2)}
-`;
+    const evaluations: RawSourceEvaluation[] = [];
 
     try {
-      const rawResponse = await this.aiService.generateCompletion(
-        systemPrompt,
-        userPrompt,
+      this.logger.log(
+        `Evaluating ${sourcePayload.length} sources in batches of ${EVALUATION_BATCH_SIZE}`,
       );
 
-      const evaluations = this.parseEvaluationResponse(rawResponse);
+      for (let index = 0; index < sourcePayload.length; index += EVALUATION_BATCH_SIZE) {
+        const batch = sourcePayload.slice(index, index + EVALUATION_BATCH_SIZE);
+        const userPrompt = `Topic: ${this.normalizePromptText(topic)}
+Goal: ${this.normalizePromptText(researchGoal)}
+Sources: ${JSON.stringify(batch, null, 2)}`;
 
-      if (!evaluations) {
-        this.logger.warn(
-          'Gemini returned invalid evaluation JSON. Falling back to original Exa results.',
+        const batchResult = await this.aiService.generateJson<RawSourceEvaluation[]>(
+          systemPrompt,
+          userPrompt,
+          {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                url: { type: Type.STRING },
+                relevanceScore: { type: Type.INTEGER },
+                qualityScore: { type: Type.INTEGER },
+                sourceType: { type: Type.STRING, enum: ['academic', 'article', 'website', 'pdf'] },
+                recommendation: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                explanation: { type: Type.STRING },
+              },
+              required: ['url', 'relevanceScore', 'qualityScore', 'sourceType', 'recommendation', 'explanation'],
+            },
+          },
+          {
+            model: 'gemini-3.6-flash',
+            maxOutputTokens: 1200,
+          },
         );
-        return limitedSources.map((source) => ({ ...source }));
+
+        evaluations.push(...(batchResult ?? []));
       }
 
       const evaluatedSources = this.mergeEvaluations(limitedSources, evaluations);
 
-      return evaluatedSources.sort((a, b) => {
+      const rankedResults = evaluatedSources.sort((a, b) => {
         const aEval = a.evaluation;
         const bEval = b.evaluation;
 
         if (!aEval || !bEval) return 0;
+
+        const recScore = { high: 3, medium: 2, low: 1 };
+        const aRec = recScore[aEval.recommendation] || 0;
+        const bRec = recScore[bEval.recommendation] || 0;
+
+        if (bRec !== aRec) return bRec - aRec;
+
         if (bEval.relevanceScore !== aEval.relevanceScore) {
           return bEval.relevanceScore - aEval.relevanceScore;
         }
         return bEval.qualityScore - aEval.qualityScore;
       });
+
+      this.logger.log(`Evaluation complete | evaluated=${rankedResults.length}`);
+      return rankedResults;
     } catch (error) {
       this.logger.warn(
         `Gemini evaluation failed: ${(error as Error).message}. Returning original Exa results.`,
@@ -107,106 +117,70 @@ ${JSON.stringify(sourcePayload, null, 2)}
     }
   }
 
-  private parseEvaluationResponse(rawResponse: string): SourceEvaluation[] | null {
-    const jsonText = this.extractJsonArray(rawResponse);
-    if (!jsonText) {
-      return null;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch {
-      return null;
-    }
-
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-
-    const evaluations: SourceEvaluation[] = [];
-
-    for (const item of parsed) {
-      if (!this.isValidEvaluation(item)) {
-        return null;
-      }
-
-      evaluations.push({
-        title: item.title.trim(),
-        url: item.url.trim(),
-        relevanceScore: this.normalizeScore(item.relevanceScore),
-        qualityScore: this.normalizeScore(item.qualityScore),
-        sourceType: item.sourceType as EvaluatedSourceType,
-        recommendation: item.recommendation as EvaluationRecommendation,
-        explanation: item.explanation.trim(),
-      });
-    }
-
-    return evaluations;
+  private normalizePromptText(value: string): string {
+    return value
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$2')
+      .replace(/\((https?:\/\/[^)]+)\)/g, '$1')
+      .replace(/\\([~_:\-])/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private mergeEvaluations(
     sources: SearchResult[],
-    evaluations: SourceEvaluation[],
+    evaluations: RawSourceEvaluation[],
   ): EvaluatedSource[] {
     const sourceMap = new Map<string, SearchResult>();
-    sources.forEach((source) => sourceMap.set(source.url, source));
+    const titleMap = new Map<string, SearchResult>();
 
-    const matched: EvaluatedSource[] = [];
+    sources.forEach((source) => {
+      sourceMap.set(this.normalizeUrl(source.url), source);
+      titleMap.set(this.normalizeTitle(source.title), source);
+    });
 
-    for (const evaluation of evaluations) {
-      const source = sourceMap.get(evaluation.url);
-      if (!source) {
-        const fallback = sources.find((item) => item.title === evaluation.title);
-        if (fallback) {
-          matched.push({ ...fallback, evaluation });
-        }
+    const evaluationMap = new Map<string, SourceEvaluation>();
+
+    for (const rawEvaluation of evaluations) {
+      const evaluation: SourceEvaluation = {
+        relevanceScore: this.normalizeScore(rawEvaluation.relevanceScore),
+        qualityScore: this.normalizeScore(rawEvaluation.qualityScore),
+        sourceType: rawEvaluation.sourceType,
+        recommendation: rawEvaluation.recommendation,
+        explanation: rawEvaluation.explanation,
+      };
+
+      const normalizedUrl = rawEvaluation.url ? this.normalizeUrl(rawEvaluation.url) : undefined;
+      const matchedSource = normalizedUrl ? sourceMap.get(normalizedUrl) : undefined;
+
+      if (matchedSource && normalizedUrl) {
+        evaluationMap.set(this.normalizeUrl(matchedSource.url), evaluation);
         continue;
       }
-      matched.push({ ...source, evaluation });
+
+      if (rawEvaluation.title) {
+        const matchedByTitle = titleMap.get(this.normalizeTitle(rawEvaluation.title));
+        if (matchedByTitle) {
+          evaluationMap.set(this.normalizeUrl(matchedByTitle.url), evaluation);
+          continue;
+        }
+      }
+
+      // If no direct match by URL or title, add evaluation to the first unmatched source.
+      const unmatchedSource = sources.find(
+        (source) => !evaluationMap.has(this.normalizeUrl(source.url)),
+      );
+
+      if (unmatchedSource) {
+        evaluationMap.set(this.normalizeUrl(unmatchedSource.url), evaluation);
+      }
     }
 
-    return matched.length > 0
-      ? matched
-      : sources.map((source) => ({ ...source }));
+    return sources.map((source) => ({
+      ...source,
+      evaluation: evaluationMap.get(this.normalizeUrl(source.url)),
+    }));
   }
 
-  private extractJsonArray(rawResponse: string): string | null {
-    const trimmed = rawResponse.trim();
-    const firstBracket = trimmed.indexOf('[');
-    const lastBracket = trimmed.lastIndexOf(']');
-
-    if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
-      return null;
-    }
-
-    return trimmed.substring(firstBracket, lastBracket + 1);
-  }
-
-  private isValidEvaluation(item: unknown): item is SourceEvaluation {
-    if (typeof item !== 'object' || item === null) {
-      return false;
-    }
-
-    const candidate = item as Record<string, unknown>;
-
-    return (
-      typeof candidate.title === 'string' &&
-      candidate.title.trim().length > 0 &&
-      typeof candidate.url === 'string' &&
-      candidate.url.trim().length > 0 &&
-      (typeof candidate.relevanceScore === 'number' ||
-        (typeof candidate.relevanceScore === 'string' && !Number.isNaN(Number(candidate.relevanceScore)))) &&
-      (typeof candidate.qualityScore === 'number' ||
-        (typeof candidate.qualityScore === 'string' && !Number.isNaN(Number(candidate.qualityScore)))) &&
-      typeof candidate.sourceType === 'string' &&
-      VALID_SOURCE_TYPES.has(candidate.sourceType) &&
-      typeof candidate.recommendation === 'string' &&
-      VALID_RECOMMENDATIONS.has(candidate.recommendation) &&
-      typeof candidate.explanation === 'string' &&
-      candidate.explanation.trim().length > 0
-    );
-  }
 
   private normalizeScore(value: unknown): number {
     const score = typeof value === 'number' ? value : Number(value);
@@ -214,5 +188,55 @@ ${JSON.stringify(sourcePayload, null, 2)}
       return 0;
     }
     return Math.min(100, Math.max(0, Math.round(score)));
+  }
+
+  private normalizeSourceType(value: string): EvaluatedSourceType | undefined {
+    const normalized = value.trim().toLowerCase();
+    if (normalized.includes('academic') || normalized.includes('arxiv') || normalized.includes('ieee') || normalized.includes('acm') || normalized.includes('springer') || normalized.includes('elsevier') || normalized.endsWith('.edu')) {
+      return 'academic';
+    }
+    if (normalized === 'pdf' || normalized.includes('pdf')) {
+      return 'article';
+    }
+    if (normalized.includes('article') || normalized.includes('blog') || normalized.includes('news') || normalized.includes('tutorial')) {
+      return 'article';
+    }
+    if (normalized.includes('website') || normalized.includes('site') || normalized.includes('webpage')) {
+      return 'website';
+    }
+    return 'website';
+  }
+
+  private normalizeTitle(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  private normalizeRecommendation(value: string): EvaluationRecommendation | undefined {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'high' || normalized === 'recommend high' || normalized === 'strong') {
+      return 'high';
+    }
+    if (normalized === 'medium' || normalized === 'recommend medium' || normalized === 'moderate') {
+      return 'medium';
+    }
+    if (normalized === 'low' || normalized === 'recommend low' || normalized === 'weak') {
+      return 'low';
+    }
+    return undefined;
+  }
+
+  private normalizeUrl(url: string): string {
+    const cleaned = url.replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '').replace(/\\\\/g, '').trim();
+    try {
+      const parsed = new URL(cleaned);
+      parsed.hash = '';
+      let normalized = `${parsed.origin}${parsed.pathname}${parsed.search}`;
+      if (normalized.length > 1 && normalized.endsWith('/')) {
+        normalized = normalized.slice(0, -1);
+      }
+      return normalized.toLowerCase();
+    } catch {
+      return cleaned.toLowerCase();
+    }
   }
 }

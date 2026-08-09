@@ -46,11 +46,13 @@ export class ResearchService {
       plan.searchQueries,
     );
 
+    console.log('ResearchService: sources before evaluation', results);
     const evaluatedResults = await this.evaluationService.evaluateSources(
       dto.topic,
       plan.researchGoal,
       results,
     );
+    console.log('ResearchService: evaluated results', evaluatedResults);
 
     return {
       success: true,
