@@ -108,7 +108,7 @@
       105deg,
       var(--foreground) 10%,
       var(--primary) 60%,
-      color-mix(in oklab, var(--primary) 55%, #9bbcff) 100%
+      color-mix(in oklab, var(--primary) 55%, #f2ff9b) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
