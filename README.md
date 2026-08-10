@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🔍 SCRAPKARO.AI
+<img src="frontend/public/scrapkaroai.png" alt="Stock Orbit Logo" width="300" />
+
+# SCRAPKARO.AI
 ### AI-Powered Research Assistant
 
 ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
