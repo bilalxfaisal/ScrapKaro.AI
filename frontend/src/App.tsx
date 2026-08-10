@@ -10,7 +10,16 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppRoutes />
-        <Toaster theme="dark" position="bottom-right" richColors />
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          toastOptions={{
+            classNames: {
+              toast: "!rounded-xl !border !border-border !shadow-soft-lg",
+            },
+          }}
+        />
       </BrowserRouter>
     </QueryClientProvider>
   )

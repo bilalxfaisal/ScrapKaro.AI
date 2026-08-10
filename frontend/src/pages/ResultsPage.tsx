@@ -1,9 +1,126 @@
 import React from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Inbox, Lightbulb, Search, BookOpen, Tag } from "lucide-react"
-import type { ResearchResponse } from "@/types/research"
+import {
+  ArrowLeft,
+  Inbox,
+  Lightbulb,
+  Search,
+  BookOpen,
+  Tag,
+  ArrowUpRight,
+  GraduationCap,
+  Newspaper,
+  FileCheck2,
+  Globe,
+  Sparkles,
+} from "lucide-react"
+import type { ResearchResult, ResearchResponse } from "@/types/research"
+import { ScoreRing } from "@/components/ScoreRing"
+
+const typeMeta: Record<string, { icon: React.ElementType; label: string }> = {
+  academic: { icon: GraduationCap, label: "Academic" },
+  article: { icon: Newspaper, label: "Article" },
+  pdf: { icon: FileCheck2, label: "PDF" },
+  website: { icon: Globe, label: "Website" },
+}
+
+const recommendationMeta: Record<string, { label: string; className: string }> = {
+  high: {
+    label: "High Match",
+    className: "bg-[color-mix(in_oklab,var(--score-high)_16%,transparent)] text-[var(--score-high)] border-[color-mix(in_oklab,var(--score-high)_35%,transparent)]",
+  },
+  medium: {
+    label: "Medium Match",
+    className: "bg-[color-mix(in_oklab,var(--score-medium)_16%,transparent)] text-[var(--score-medium)] border-[color-mix(in_oklab,var(--score-medium)_35%,transparent)]",
+  },
+  low: {
+    label: "Low Match",
+    className: "bg-[color-mix(in_oklab,var(--score-low)_16%,transparent)] text-[var(--score-low)] border-[color-mix(in_oklab,var(--score-low)_35%,transparent)]",
+  },
+}
+
+function SourceCard({ result, index }: { result: ResearchResult; index: number }) {
+  const type = typeMeta[result.type] ?? typeMeta.website
+  const TypeIcon = type.icon
+  const rec = result.evaluation ? recommendationMeta[result.evaluation.recommendation] : null
+
+  return (
+    <div
+      className="group relative animate-fade-in-up overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-soft-sm transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft-md"
+      style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 font-mono text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+              <TypeIcon className="h-3 w-3" />
+              {type.label}
+            </span>
+            {rec && (
+              <span className={`rounded-full border px-2 py-0.5 font-mono text-[0.65rem] font-medium uppercase tracking-wide ${rec.className}`}>
+                {rec.label}
+              </span>
+            )}
+          </div>
+
+          <h4 className="text-[1.05rem] font-semibold leading-snug text-foreground">
+            {result.title}
+          </h4>
+
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] text-muted-foreground">
+            {result.source && <span>{result.source}</span>}
+            {result.publishedDate && (
+              <>
+                <span className="opacity-40">·</span>
+                <span>{result.publishedDate}</span>
+              </>
+            )}
+            {result.author && (
+              <>
+                <span className="opacity-40">·</span>
+                <span className="truncate">{result.author}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3 self-start sm:self-center">
+          {result.evaluation && (
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
+              <ScoreRing value={result.evaluation.relevanceScore} label="Relevance" size={52} />
+              <ScoreRing value={result.evaluation.qualityScore} label="Quality" size={52} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {result.evaluation?.explanation ? (
+        <div className="mt-4 rounded-xl border-l-2 border-primary/40 bg-muted/30 py-2.5 pl-4 pr-3">
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {result.evaluation.explanation}
+          </p>
+        </div>
+      ) : !result.evaluation ? (
+        <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-2.5">
+          <p className="text-[13px] text-muted-foreground">
+            Returned by Exa but not evaluated by Gemini for this request.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mt-4 flex justify-end">
+        <a href={result.url} target="_blank" rel="noreferrer noopener">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            Open Source
+            <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Button>
+        </a>
+      </div>
+    </div>
+  )
+}
 
 export const ResultsPage: React.FC = () => {
   const location = useLocation()
@@ -11,23 +128,22 @@ export const ResultsPage: React.FC = () => {
 
   if (!data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] w-full py-4 animate-fade-in">
-        <Card className="w-full max-w-xl bg-zinc-950 border-zinc-800 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
-          <CardHeader className="text-center pt-8">
-            <div className="mx-auto w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4">
+      <div className="flex w-full animate-fade-in flex-col items-center justify-center py-4">
+        <Card className="w-full max-w-lg overflow-hidden rounded-3xl border-border/80 bg-card/70 shadow-soft-lg backdrop-blur-xl">
+          <CardHeader className="pt-10 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-muted text-muted-foreground">
               <Inbox className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+            <CardTitle className="font-display text-2xl font-medium text-foreground">
               No Active Research Results
             </CardTitle>
-            <CardDescription className="text-zinc-400 mt-2">
+            <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
               You haven't run a research query yet in this session. Start a new search from the home page.
-            </CardDescription>
+            </p>
           </CardHeader>
-          <CardContent className="flex justify-center pb-8">
+          <CardContent className="flex justify-center pb-10 pt-6">
             <Link to="/">
-              <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white border-none gap-2 px-6">
+              <Button size="lg">
                 <ArrowLeft className="h-4 w-4" />
                 Start Research
               </Button>
@@ -38,140 +154,133 @@ export const ResultsPage: React.FC = () => {
     )
   }
 
+  const evaluatedCount = data.results?.filter((r) => r.evaluation).length ?? 0
+
   return (
-    <div className="flex flex-col items-center justify-start min-h-[60vh] w-full py-8 animate-fade-in px-4">
-      <Card className="w-full max-w-4xl bg-zinc-950 border-zinc-800 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
-        
-        <CardHeader className="border-b border-zinc-900/60 pb-6 pt-8 px-6 sm:px-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-violet-400 tracking-wider uppercase">Research Results</h2>
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-zinc-900">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                New Search
-              </Button>
-            </Link>
+    <div className="flex w-full animate-fade-in flex-col gap-6 py-2">
+      {/* Briefing header */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card/70 p-6 shadow-soft-md backdrop-blur-xl sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full blur-[90px]"
+          style={{ background: `radial-gradient(closest-side, var(--glow-a), transparent)` }}
+        />
+        <div className="relative flex items-center justify-between">
+          <span className="flex items-center gap-1.5 label-eyebrow">
+            <Sparkles className="h-3 w-3 text-primary" />
+            Research Briefing
+          </span>
+          <Link to="/">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4" />
+              New Search
+            </Button>
+          </Link>
+        </div>
+
+        <h1 className="relative mt-3 font-display text-3xl font-medium leading-tight text-foreground sm:text-4xl">
+          {data.topic}
+        </h1>
+
+        <div className="relative mt-5 flex flex-wrap gap-2">
+          <MetaChip value={data.searchQueries?.length ?? 0} label="queries" />
+          <MetaChip value={data.keywords?.length ?? 0} label="keywords" />
+          <MetaChip value={data.results?.length ?? 0} label="sources" />
+          <MetaChip value={evaluatedCount} label="evaluated" />
+        </div>
+      </div>
+
+      {/* Plan overview */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <PlanCard icon={Lightbulb} iconClass="text-amber-400" title="Research Goal">
+          <p className="text-sm leading-relaxed text-muted-foreground">{data.goal}</p>
+        </PlanCard>
+
+        <PlanCard icon={Search} iconClass="text-sky-400" title="Search Queries">
+          <ul className="space-y-1.5">
+            {data.searchQueries?.map((query, idx) => (
+              <li key={idx} className="flex items-start gap-2 font-mono text-[12.5px] text-muted-foreground">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/50" />
+                {query}
+              </li>
+            ))}
+          </ul>
+        </PlanCard>
+
+        <PlanCard icon={Tag} iconClass="text-emerald-400" title="Keywords">
+          <div className="flex flex-wrap gap-1.5">
+            {data.keywords?.map((kw, idx) => (
+              <span
+                key={idx}
+                className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground"
+              >
+                {kw}
+              </span>
+            ))}
           </div>
-          <CardTitle className="text-3xl font-bold text-white mb-2">{data.topic}</CardTitle>
-        </CardHeader>
+        </PlanCard>
 
-        <CardContent className="py-8 px-6 sm:px-8 flex flex-col gap-8">
-          
-          <section>
-            <div className="flex items-center gap-2 mb-3 text-zinc-200">
-              <Lightbulb className="h-5 w-5 text-amber-400" />
-              <h3 className="text-xl font-semibold">Research Goal</h3>
-            </div>
-            <p className="text-zinc-400 leading-relaxed pl-7">{data.goal}</p>
-          </section>
+        <PlanCard icon={BookOpen} iconClass="text-rose-400" title="Recommended Sources">
+          <ul className="space-y-1.5">
+            {data.recommendedSources?.map((source, idx) => (
+              <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/50" />
+                {source}
+              </li>
+            ))}
+          </ul>
+        </PlanCard>
+      </div>
 
-          <section>
-            <div className="flex items-center gap-2 mb-3 text-zinc-200">
-              <Search className="h-5 w-5 text-blue-400" />
-              <h3 className="text-xl font-semibold">Search Queries</h3>
-            </div>
-            <ul className="list-disc pl-11 text-zinc-400 space-y-1">
-              {data.searchQueries?.map((query, idx) => (
-                <li key={idx}>{query}</li>
-              ))}
-            </ul>
-          </section>
+      {/* Sources */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 px-1">
+          <h3 className="font-display text-xl font-medium text-foreground">Ranked Sources</h3>
+          <span className="label-eyebrow">high → low</span>
+        </div>
 
-          <section>
-            <div className="flex items-center gap-2 mb-3 text-zinc-200">
-              <Tag className="h-5 w-5 text-emerald-400" />
-              <h3 className="text-xl font-semibold">Keywords</h3>
-            </div>
-            <div className="flex flex-wrap gap-2 pl-7">
-              {data.keywords?.map((kw, idx) => (
-                <span key={idx} className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-300 text-sm">
-                  {kw}
-                </span>
-              ))}
-            </div>
-          </section>
+        {data.results?.length ? (
+          <div className="flex flex-col gap-3">
+            {data.results.map((result, idx) => (
+              <SourceCard key={`${result.url}-${idx}`} result={result} index={idx} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+            <p className="text-sm text-muted-foreground">No results were returned for this research request.</p>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
 
-          <section>
-            <div className="flex items-center gap-2 mb-3 text-zinc-200">
-              <BookOpen className="h-5 w-5 text-rose-400" />
-              <h3 className="text-xl font-semibold">Recommended Sources</h3>
-            </div>
-            <ul className="list-disc pl-11 text-zinc-400 space-y-1">
-              {data.recommendedSources?.map((source, idx) => (
-                <li key={idx}>{source}</li>
-              ))}
-            </ul>
-          </section>
+function MetaChip({ value, label }: { value: number; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1">
+      <span className="font-mono text-xs font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="label-eyebrow">{label}</span>
+    </span>
+  )
+}
 
-          <section>
-            <div className="flex items-center gap-2 mb-3 text-zinc-200">
-              <BookOpen className="h-5 w-5 text-rose-400" />
-              <h3 className="text-xl font-semibold">AI Recommended Sources</h3>
-            </div>
-            <div className="space-y-4 pl-7">
-              {data.results?.length ? (
-                data.results.map((result, idx) => (
-                  <div
-                    key={idx}
-                    className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-violet-500 transition"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-white font-semibold text-lg">{result.title}</p>
-                        <p className="text-zinc-500 text-sm mt-1">{result.source}</p>
-                      </div>
-                      <a
-                        href={result.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="rounded-md bg-violet-600 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-violet-500 transition"
-                      >
-                        Open Source
-                      </a>
-                    </div>
-
-                    {result.evaluation ? (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                          <p className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Source Type</p>
-                          <p className="text-white font-semibold capitalize">{result.evaluation.sourceType}</p>
-                        </div>
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                          <p className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Relevance</p>
-                          <p className="text-white font-semibold">{result.evaluation.relevanceScore}%</p>
-                        </div>
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                          <p className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Quality</p>
-                          <p className="text-white font-semibold">{result.evaluation.qualityScore}%</p>
-                        </div>
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                          <p className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Recommendation</p>
-                          <p className="text-white font-semibold capitalize">{result.evaluation.recommendation}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                        <p className="text-zinc-400 text-sm">This source was returned by Exa but not evaluated by Gemini.</p>
-                      </div>
-                    )}
-
-                    {result.evaluation?.explanation ? (
-                      <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-                        <p className="text-zinc-400 text-xs uppercase tracking-[0.2em] mb-2">Why it is recommended</p>
-                        <p className="text-zinc-300 text-sm leading-relaxed">{result.evaluation.explanation}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <p className="text-zinc-500">No results were returned for this research request.</p>
-              )}
-            </div>
-          </section>
-
-        </CardContent>
-      </Card>
+function PlanCard({
+  icon: Icon,
+  iconClass,
+  title,
+  children,
+}: {
+  icon: React.ElementType
+  iconClass: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/60 p-5 shadow-soft-sm">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon className={`h-4 w-4 ${iconClass}`} />
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      </div>
+      {children}
     </div>
   )
 }

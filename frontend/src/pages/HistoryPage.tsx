@@ -1,30 +1,33 @@
 import React from "react"
 import { Link } from "react-router-dom"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Clock } from "lucide-react"
+import { Clock, Sparkles } from "lucide-react"
 
 export const HistoryPage: React.FC = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] w-full py-4 animate-fade-in">
-      <Card className="w-full max-w-xl bg-zinc-950 border-zinc-800 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
-        <CardHeader className="text-center pt-8">
-          <div className="mx-auto w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4">
+    <div className="flex w-full animate-fade-in flex-col items-center justify-center py-4">
+      <Card className="w-full max-w-lg overflow-hidden rounded-3xl border-border/80 bg-card/70 shadow-soft-lg backdrop-blur-xl">
+        <div
+          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full blur-[80px]"
+          style={{ background: `radial-gradient(closest-side, var(--glow-a), transparent)` }}
+        />
+        <CardHeader className="pt-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-muted text-muted-foreground">
             <Clock className="h-6 w-6" />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-            No Research History
+          <CardTitle className="font-display text-2xl font-medium text-foreground">
+            No Research History Yet
           </CardTitle>
-          <CardDescription className="text-zinc-400 mt-2">
-            Your recent research queries will appear here once you generate some research sessions.
-          </CardDescription>
+          <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
+            Your past research sessions will show up here once you start generating them.
+          </p>
         </CardHeader>
-        <CardContent className="flex justify-center pb-8">
+        <CardContent className="flex flex-col items-center gap-3 pb-10 pt-6">
           <Link to="/">
-            <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white border-none gap-2 px-6">
-              <ArrowLeft className="h-4 w-4" />
-              Go Back Home
+            <Button size="lg">
+              <Sparkles className="h-4 w-4" />
+              Start Your First Research
             </Button>
           </Link>
         </CardContent>

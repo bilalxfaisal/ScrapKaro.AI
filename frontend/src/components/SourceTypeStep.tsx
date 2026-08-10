@@ -1,6 +1,5 @@
 import React from "react"
 import { useFormContext, Controller } from "react-hook-form"
-import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { LucideIcon } from "lucide-react"
 import { FileText, Newspaper, FileCode, BarChart4, Globe, Book, FileCheck2 } from "lucide-react"
@@ -72,12 +71,11 @@ export const SourceTypeStep: React.FC = () => {
   } = useFormContext()
 
   return (
-    <div className="space-y-4 py-2 text-left animate-fade-in">
-      <div className="space-y-1">
-        <Label className="text-sm font-semibold text-zinc-200">
-          Source Types <span className="text-violet-400">*</span>
-        </Label>
-        <p className="text-zinc-500 text-xs">Select one or more sources you want to reference.</p>
+    <div className="space-y-5 text-left">
+      <div className="space-y-1.5">
+        <span className="label-eyebrow">Step 03</span>
+        <h3 className="font-display text-2xl font-medium text-foreground">Where should it look?</h3>
+        <p className="text-sm text-muted-foreground">Select one or more source types you want referenced.</p>
       </div>
 
       <Controller
@@ -95,7 +93,7 @@ export const SourceTypeStep: React.FC = () => {
           }
 
           return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className="grid max-h-[280px] grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 sm:overflow-visible">
               {sourceOptions.map((option) => {
                 const Icon = option.icon
                 const isChecked = currentValues.includes(option.id)
@@ -103,34 +101,46 @@ export const SourceTypeStep: React.FC = () => {
                 return (
                   <div
                     key={option.id}
+                    role="checkbox"
+                    aria-checked={isChecked}
+                    tabIndex={0}
                     onClick={() => handleToggle(option.id)}
-                    className={`flex items-center gap-3.5 p-4 rounded-xl border cursor-pointer transition-all duration-300 select-none ${isChecked
-                      ? "border-violet-500 bg-violet-600/10 shadow-[0_0_20px_rgba(139,92,246,0.15)] ring-1 ring-violet-500/50"
-                      : "border-zinc-800 bg-zinc-950/40 hover:bg-zinc-900/60 hover:border-zinc-700"
-                      }`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleToggle(option.id)
+                      }
+                    }}
+                    className={`group flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                      isChecked
+                        ? "border-primary/50 bg-accent shadow-soft-sm ring-1 ring-primary/20"
+                        : "border-border bg-card/50 hover:border-primary/25 hover:bg-accent/50"
+                    }`}
                   >
                     <Checkbox
                       checked={isChecked}
                       onCheckedChange={() => handleToggle(option.id)}
-                      className="border-zinc-700 data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-500 focus-visible:ring-violet-500"
-                      onClick={(e) => e.stopPropagation()} // Prevent double trigger
+                      onClick={(e) => e.stopPropagation()}
+                      tabIndex={-1}
                     />
                     <div
-                      className={`p-2 rounded-lg border transition-all duration-300 ${isChecked
-                        ? "bg-violet-600 border-violet-500 text-white"
-                        : "bg-zinc-900 border-zinc-850 text-zinc-400"
-                        }`}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                        isChecked
+                          ? "border-transparent bg-primary text-primary-foreground"
+                          : "border-border bg-muted text-muted-foreground group-hover:text-foreground"
+                      }`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <div className="space-y-0.5">
+                    <div className="min-w-0 space-y-0.5">
                       <h4
-                        className={`text-sm font-semibold transition-colors duration-200 ${isChecked ? "text-violet-400" : "text-zinc-200"
-                          }`}
+                        className={`text-sm font-semibold transition-colors duration-200 ${
+                          isChecked ? "text-primary" : "text-foreground"
+                        }`}
                       >
                         {option.label}
                       </h4>
-                      <p className="text-[10px] text-zinc-500 leading-normal">
+                      <p className="truncate text-[10.5px] leading-normal text-muted-foreground">
                         {option.description}
                       </p>
                     </div>
@@ -143,7 +153,7 @@ export const SourceTypeStep: React.FC = () => {
       />
 
       {errors.sourceTypes && (
-        <p className="text-red-400 text-xs font-medium mt-2 animate-fade-in">
+        <p className="animate-fade-in text-xs font-medium text-destructive">
           {errors.sourceTypes.message as string}
         </p>
       )}

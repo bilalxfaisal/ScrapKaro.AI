@@ -1,5 +1,4 @@
 import React from "react"
-import { Progress } from "@/components/ui/progress"
 import { Check } from "lucide-react"
 
 interface StepperProps {
@@ -9,43 +8,48 @@ interface StepperProps {
 }
 
 export const Stepper: React.FC<StepperProps> = ({ currentStep, totalSteps, stepNames }) => {
-  // Calculate percentage: for 4 steps, progress transitions from 0%, 33.3%, 66.6%, to 100%
   const progressValue = ((currentStep - 1) / (totalSteps - 1)) * 100
 
   return (
-    <div className="w-full space-y-6">
-      {/* Visual Line Progress */}
-      <div className="relative pt-2">
-        <Progress value={progressValue} className="h-1 bg-zinc-800 [&>div]:bg-gradient-to-r [&>div]:from-violet-500 [&>div]:to-indigo-500" />
+    <div className="w-full space-y-5">
+      <div className="flex items-center justify-between">
+        <span className="label-eyebrow">Research Brief</span>
+        <span className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
+          {String(currentStep).padStart(2, "0")} / {String(totalSteps).padStart(2, "0")}
+        </span>
       </div>
 
-      {/* Number Bubbles */}
-      <div className="flex justify-between items-center relative">
+      <div className="relative">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-primary to-[color-mix(in_oklab,var(--primary)_55%,#4f74ff)] transition-all duration-500 ease-smooth"
+            style={{ width: `${progressValue}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
         {stepNames.map((name, index) => {
           const stepNumber = index + 1
           const isActive = stepNumber === currentStep
           const isCompleted = stepNumber < currentStep
 
           return (
-            <div key={name} className="flex flex-col items-center text-center group">
+            <div key={name} className="flex flex-1 flex-col items-center gap-2 text-center first:items-start first:text-left last:items-end last:text-right">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold border transition-all duration-300 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-full border font-mono text-xs font-semibold transition-all duration-300 ease-smooth ${
                   isCompleted
-                    ? "bg-gradient-to-tr from-violet-600 to-indigo-600 border-transparent text-white shadow-lg shadow-violet-500/20"
+                    ? "border-transparent bg-primary text-primary-foreground shadow-soft-sm"
                     : isActive
-                    ? "bg-zinc-900 border-violet-500 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.15)] scale-105"
-                    : "bg-zinc-950 border-zinc-850 text-zinc-500"
+                    ? "border-primary bg-card text-primary shadow-soft-sm ring-4 ring-primary/10"
+                    : "border-border bg-card text-muted-foreground"
                 }`}
               >
-                {isCompleted ? <Check className="h-4 w-4 stroke-[3]" /> : stepNumber}
+                {isCompleted ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : String(stepNumber).padStart(2, "0")}
               </div>
               <span
-                className={`mt-2 text-[10px] sm:text-xs font-medium transition-colors duration-200 ${
-                  isActive
-                    ? "text-violet-400 font-semibold"
-                    : isCompleted
-                    ? "text-zinc-300"
-                    : "text-zinc-500"
+                className={`text-[11px] font-medium transition-colors duration-200 ${
+                  isActive ? "text-foreground" : isCompleted ? "text-muted-foreground" : "text-muted-foreground/60"
                 }`}
               >
                 {name}

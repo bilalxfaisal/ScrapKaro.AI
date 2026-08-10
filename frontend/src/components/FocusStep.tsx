@@ -7,20 +7,26 @@ export const FocusStep: React.FC = () => {
   const { register } = useFormContext()
 
   return (
-    <div className="space-y-4 py-2 text-left animate-fade-in">
-      <div className="space-y-1">
-        <Label htmlFor="focus" className="text-sm font-semibold text-zinc-200">
-          Specific Focus <span className="text-zinc-500 font-normal text-xs">(Optional)</span>
-        </Label>
-        <p className="text-zinc-500 text-xs">Define key target metrics, parameters, or restrictions to refine the research.</p>
+    <div className="space-y-5 text-left">
+      <div className="space-y-1.5">
+        <span className="label-eyebrow">Step 04</span>
+        <h3 className="font-display text-2xl font-medium text-foreground">Anything to narrow it down?</h3>
+        <p className="text-sm text-muted-foreground">
+          Define key target metrics, parameters, or restrictions to refine the research.
+        </p>
       </div>
 
-      <Textarea
-        id="focus"
-        placeholder="Optional. Example: Healthcare, Neural Networks, Python"
-        {...register("focus")}
-        className="bg-zinc-950 border-zinc-800 focus-visible:ring-violet-500 text-zinc-100 placeholder:text-zinc-650 min-h-[120px] resize-y h-32"
-      />
+      <div className="space-y-2">
+        <Label htmlFor="focus">
+          Specific Focus <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
+        </Label>
+        <Textarea
+          id="focus"
+          placeholder="Optional. Example: Healthcare, Neural Networks, Python"
+          {...register("focus")}
+          className="min-h-[130px] resize-y"
+        />
+      </div>
     </div>
   )
 }
