@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ResearchModule } from './research/research.module';
+import { DatabaseModule } from './db/database.module';
 
 @Module({
   imports: [
@@ -8,6 +9,7 @@ import { ResearchModule } from './research/research.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    DatabaseModule,
     ResearchModule,
   ],
 })

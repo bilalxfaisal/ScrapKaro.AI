@@ -1,5 +1,10 @@
 import { api } from "./api";
-import type { ResearchFormData, ResearchResponse } from "@/types/research";
+import type {
+  ResearchFormData,
+  ResearchHistoryItem,
+  ResearchResponse,
+  SavedResearchSession,
+} from "@/types/research";
 
 interface BackendResearchPlan {
   researchGoal: string;
@@ -38,4 +43,27 @@ export const createResearch = async (data: ResearchFormData): Promise<ResearchRe
     recommendedSources: backendData.plan.recommendedSources,
     results: backendData.results ?? [],
   };
+};
+
+export const getResearchHistory = async (): Promise<ResearchHistoryItem[]> => {
+  const response = await api.get<ResearchHistoryItem[]>("/research/history");
+  return response.data;
+};
+
+export const getResearchSession = async (id: string): Promise<ResearchResponse> => {
+  const response = await api.get<SavedResearchSession>(`/research/history/${id}`);
+  const session = response.data;
+
+  return {
+    topic: session.topic,
+    goal: session.researchGoal,
+    searchQueries: session.searchQueries,
+    keywords: session.keywords,
+    recommendedSources: session.recommendedSources,
+    results: session.results,
+  };
+};
+
+export const deleteResearchSession = async (id: string): Promise<void> => {
+  await api.delete(`/research/history/${id}`);
 };

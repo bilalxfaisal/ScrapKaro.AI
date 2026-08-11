@@ -44,3 +44,20 @@ export interface ResearchResponse {
   recommendedSources: string[];
   results: ResearchResult[];
 }
+
+export interface ResearchHistoryItem {
+  id: string;
+  topic: string;
+  purpose: string;
+  focus: string | null;
+  researchGoal: string;
+  results: ResearchResult[];
+  createdAt: string;
+}
+
+export interface SavedResearchSession extends ResearchHistoryItem {
+  sourceTypes: string[];
+  searchQueries: string[];
+  keywords: string[];
+  recommendedSources: string[];
+}

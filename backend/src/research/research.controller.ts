@@ -1,4 +1,13 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -108,5 +117,24 @@ export class ResearchController {
   })
   create(@Body() createResearchDto: CreateResearchDto) {
     return this.researchService.createResearch(createResearchDto);
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get saved research history' })
+  getHistory() {
+    return this.researchService.getHistory();
+  }
+
+  @Get('history/:id')
+  @ApiOperation({ summary: 'Get a saved research session' })
+  getSession(@Param('id') id: string) {
+    return this.researchService.getSession(id);
+  }
+
+  @Delete('history/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a saved research session' })
+  deleteSession(@Param('id') id: string) {
+    return this.researchService.deleteSession(id);
   }
 }
