@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
     "VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required. " +
-      "Add them to frontend/.env (see frontend/.env.example).",
+      "Add them to frontend/.env (see frontend/.env).",
   )
 }
 
