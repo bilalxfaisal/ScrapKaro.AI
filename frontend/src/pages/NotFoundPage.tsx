@@ -1,7 +1,7 @@
 import React from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Compass, Home, ArrowLeft } from "lucide-react"
+import { Home, ArrowLeft } from "lucide-react"
 
 export const NotFoundPage: React.FC = () => {
   const navigate = useNavigate()

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Link, Navigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2} from "lucide-react"
 import { toast } from "sonner"
 
 function GoogleLogo({ className }: { className?: string }) {
