@@ -9,7 +9,6 @@ async function bootstrap() {
   // CORS — allow the frontend dev server
   app.enableCors({
     origin: [
-      'http://localhost:5151',
       'https://scrap-karo-ai.vercel.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
