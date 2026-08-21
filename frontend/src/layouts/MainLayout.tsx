@@ -1,6 +1,6 @@
 import React from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Search, History, FileText } from "lucide-react"
+import { Search, History, FileText, Settings } from "lucide-react"
 import { UserMenu } from "@/components/UserMenu"
 
 interface MainLayoutProps {
@@ -14,6 +14,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { path: "/", label: "Research", icon: Search },
     { path: "/results", label: "Results", icon: FileText },
     { path: "/history", label: "History", icon: History },
+    { path: "/settings", label: "Settings", icon: Settings },
   ]
 
   return (

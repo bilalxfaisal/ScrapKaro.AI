@@ -10,10 +10,19 @@ import {
   EvaluationRecommendation,
 } from './evaluation.interface';
 
-const MAX_EVALUATION_SOURCES = 5;
+const DEFAULT_MAX_EVALUATION_SOURCES = 5;
 const EVALUATION_BATCH_SIZE = 2;
-const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set(['academic', 'article', 'website', 'pdf']);
-const VALID_RECOMMENDATIONS: ReadonlySet<string> = new Set(['high', 'medium', 'low']);
+const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set([
+  'academic',
+  'article',
+  'website',
+  'pdf',
+]);
+const VALID_RECOMMENDATIONS: ReadonlySet<string> = new Set([
+  'high',
+  'medium',
+  'low',
+]);
 
 @Injectable()
 export class EvaluationService {
@@ -25,17 +34,19 @@ export class EvaluationService {
     topic: string,
     researchGoal: string,
     sources: SearchResult[],
+    apiKey?: string,
+    maxSources: number = DEFAULT_MAX_EVALUATION_SOURCES,
   ): Promise<EvaluatedSource[]> {
-    const limitedSources = sources.slice(0, MAX_EVALUATION_SOURCES);
+    const limitedSources = sources.slice(0, maxSources);
 
     if (!limitedSources.length) {
       this.logger.log('No sources to evaluate. Returning empty source list.');
       return [];
     }
 
-    if (sources.length > MAX_EVALUATION_SOURCES) {
+    if (sources.length > maxSources) {
       this.logger.log(
-        `Limiting source evaluation to first ${MAX_EVALUATION_SOURCES} of ${sources.length} returned by Exa.`,
+        `Limiting source evaluation to first ${maxSources} of ${sources.length} returned by Exa.`,
       );
     }
 
@@ -54,13 +65,19 @@ export class EvaluationService {
         `Evaluating ${sourcePayload.length} sources in batches of ${EVALUATION_BATCH_SIZE}`,
       );
 
-      for (let index = 0; index < sourcePayload.length; index += EVALUATION_BATCH_SIZE) {
+      for (
+        let index = 0;
+        index < sourcePayload.length;
+        index += EVALUATION_BATCH_SIZE
+      ) {
         const batch = sourcePayload.slice(index, index + EVALUATION_BATCH_SIZE);
         const userPrompt = `Topic: ${this.normalizePromptText(topic)}
 Goal: ${this.normalizePromptText(researchGoal)}
 Sources: ${JSON.stringify(batch, null, 2)}`;
 
-        const batchResult = await this.aiService.generateJson<RawSourceEvaluation[]>(
+        const batchResult = await this.aiService.generateJson<
+          RawSourceEvaluation[]
+        >(
           systemPrompt,
           userPrompt,
           {
@@ -71,23 +88,40 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
                 url: { type: Type.STRING },
                 relevanceScore: { type: Type.INTEGER },
                 qualityScore: { type: Type.INTEGER },
-                sourceType: { type: Type.STRING, enum: ['academic', 'article', 'website', 'pdf'] },
-                recommendation: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                sourceType: {
+                  type: Type.STRING,
+                  enum: ['academic', 'article', 'website', 'pdf'],
+                },
+                recommendation: {
+                  type: Type.STRING,
+                  enum: ['high', 'medium', 'low'],
+                },
                 explanation: { type: Type.STRING },
               },
-              required: ['url', 'relevanceScore', 'qualityScore', 'sourceType', 'recommendation', 'explanation'],
+              required: [
+                'url',
+                'relevanceScore',
+                'qualityScore',
+                'sourceType',
+                'recommendation',
+                'explanation',
+              ],
             },
           },
           {
             model: 'gemini-3.6-flash',
             maxOutputTokens: 1200,
+            apiKey,
           },
         );
 
         evaluations.push(...(batchResult ?? []));
       }
 
-      const evaluatedSources = this.mergeEvaluations(limitedSources, evaluations);
+      const evaluatedSources = this.mergeEvaluations(
+        limitedSources,
+        evaluations,
+      );
 
       const rankedResults = evaluatedSources.sort((a, b) => {
         const aEval = a.evaluation;
@@ -107,7 +141,9 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
         return bEval.qualityScore - aEval.qualityScore;
       });
 
-      this.logger.log(`Evaluation complete | evaluated=${rankedResults.length}`);
+      this.logger.log(
+        `Evaluation complete | evaluated=${rankedResults.length}`,
+      );
       return rankedResults;
     } catch (error) {
       this.logger.warn(
@@ -149,8 +185,12 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
         explanation: rawEvaluation.explanation,
       };
 
-      const normalizedUrl = rawEvaluation.url ? this.normalizeUrl(rawEvaluation.url) : undefined;
-      const matchedSource = normalizedUrl ? sourceMap.get(normalizedUrl) : undefined;
+      const normalizedUrl = rawEvaluation.url
+        ? this.normalizeUrl(rawEvaluation.url)
+        : undefined;
+      const matchedSource = normalizedUrl
+        ? sourceMap.get(normalizedUrl)
+        : undefined;
 
       if (matchedSource && normalizedUrl) {
         evaluationMap.set(this.normalizeUrl(matchedSource.url), evaluation);
@@ -158,7 +198,9 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
       }
 
       if (rawEvaluation.title) {
-        const matchedByTitle = titleMap.get(this.normalizeTitle(rawEvaluation.title));
+        const matchedByTitle = titleMap.get(
+          this.normalizeTitle(rawEvaluation.title),
+        );
         if (matchedByTitle) {
           evaluationMap.set(this.normalizeUrl(matchedByTitle.url), evaluation);
           continue;
@@ -181,7 +223,6 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
     }));
   }
 
-
   private normalizeScore(value: unknown): number {
     const score = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(score)) {
@@ -192,16 +233,33 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
 
   private normalizeSourceType(value: string): EvaluatedSourceType | undefined {
     const normalized = value.trim().toLowerCase();
-    if (normalized.includes('academic') || normalized.includes('arxiv') || normalized.includes('ieee') || normalized.includes('acm') || normalized.includes('springer') || normalized.includes('elsevier') || normalized.endsWith('.edu')) {
+    if (
+      normalized.includes('academic') ||
+      normalized.includes('arxiv') ||
+      normalized.includes('ieee') ||
+      normalized.includes('acm') ||
+      normalized.includes('springer') ||
+      normalized.includes('elsevier') ||
+      normalized.endsWith('.edu')
+    ) {
       return 'academic';
     }
     if (normalized === 'pdf' || normalized.includes('pdf')) {
       return 'article';
     }
-    if (normalized.includes('article') || normalized.includes('blog') || normalized.includes('news') || normalized.includes('tutorial')) {
+    if (
+      normalized.includes('article') ||
+      normalized.includes('blog') ||
+      normalized.includes('news') ||
+      normalized.includes('tutorial')
+    ) {
       return 'article';
     }
-    if (normalized.includes('website') || normalized.includes('site') || normalized.includes('webpage')) {
+    if (
+      normalized.includes('website') ||
+      normalized.includes('site') ||
+      normalized.includes('webpage')
+    ) {
       return 'website';
     }
     return 'website';
@@ -211,22 +269,39 @@ Sources: ${JSON.stringify(batch, null, 2)}`;
     return value.trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
-  private normalizeRecommendation(value: string): EvaluationRecommendation | undefined {
+  private normalizeRecommendation(
+    value: string,
+  ): EvaluationRecommendation | undefined {
     const normalized = value.trim().toLowerCase();
-    if (normalized === 'high' || normalized === 'recommend high' || normalized === 'strong') {
+    if (
+      normalized === 'high' ||
+      normalized === 'recommend high' ||
+      normalized === 'strong'
+    ) {
       return 'high';
     }
-    if (normalized === 'medium' || normalized === 'recommend medium' || normalized === 'moderate') {
+    if (
+      normalized === 'medium' ||
+      normalized === 'recommend medium' ||
+      normalized === 'moderate'
+    ) {
       return 'medium';
     }
-    if (normalized === 'low' || normalized === 'recommend low' || normalized === 'weak') {
+    if (
+      normalized === 'low' ||
+      normalized === 'recommend low' ||
+      normalized === 'weak'
+    ) {
       return 'low';
     }
     return undefined;
   }
 
   private normalizeUrl(url: string): string {
-    const cleaned = url.replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '').replace(/\\\\/g, '').trim();
+    const cleaned = url
+      .replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '')
+      .replace(/\\\\/g, '')
+      .trim();
     try {
       const parsed = new URL(cleaned);
       parsed.hash = '';

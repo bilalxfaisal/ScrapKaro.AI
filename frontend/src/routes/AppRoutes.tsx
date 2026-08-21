@@ -4,6 +4,7 @@ import { MainLayout } from "@/layouts/MainLayout"
 import { HomePage } from "@/pages/HomePage"
 import { ResultsPage } from "@/pages/ResultsPage"
 import { HistoryPage } from "@/pages/HistoryPage"
+import { SettingsPage } from "@/pages/SettingsPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { RequireAuth } from "@/components/RequireAuth"
@@ -38,6 +39,16 @@ export const AppRoutes: React.FC = () => {
           <RequireAuth>
             <MainLayout>
               <HistoryPage />
+            </MainLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireAuth>
+            <MainLayout>
+              <SettingsPage />
             </MainLayout>
           </RequireAuth>
         }

@@ -1,6 +1,10 @@
 import React from "react"
+import { Link } from "react-router-dom"
 import { ResearchForm } from "@/components/ResearchForm"
-import { Sparkles, ScanSearch, Gauge } from "lucide-react"
+import { Sparkles, ScanSearch, Gauge, KeyRound } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useApiKeysStatus } from "@/hooks/useApiKeys"
+import { MISSING_API_KEYS_MESSAGE } from "@/services/settings.service"
 
 const pillars = [
   { icon: ScanSearch, text: "Plans your search strategy" },
@@ -8,6 +12,10 @@ const pillars = [
 ]
 
 export const HomePage: React.FC = () => {
+  const { data: keyStatus } = useApiKeysStatus()
+  const missingKeys =
+    !!keyStatus && (!keyStatus.geminiConfigured || !keyStatus.exaConfigured)
+
   return (
     <div className="flex w-full flex-col items-center justify-center gap-10 py-4">
       <div className="max-w-2xl space-y-5 text-center">
@@ -38,6 +46,18 @@ export const HomePage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {missingKeys && (
+        <div className="flex w-full max-w-xl animate-fade-in flex-col gap-3 rounded-2xl border border-warning/40 bg-card/70 px-4 py-4 shadow-soft-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2.5">
+            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <p className="text-sm leading-relaxed text-foreground">{MISSING_API_KEYS_MESSAGE}</p>
+          </div>
+          <Button asChild size="sm" className="shrink-0">
+            <Link to="/settings">Go to Settings</Link>
+          </Button>
+        </div>
+      )}
 
       <div className="w-full max-w-xl animate-fade-in-up animation-delay-300">
         <ResearchForm />

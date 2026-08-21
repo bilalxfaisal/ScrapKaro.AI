@@ -3,6 +3,7 @@ import { createResearch } from "@/services/research.service";
 import type { ResearchFormData, ResearchResponse } from "@/types/research";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 export const useCreateResearch = () => {
   const navigate = useNavigate();
@@ -16,7 +17,12 @@ export const useCreateResearch = () => {
     },
     onError: (error) => {
       console.error("Failed to generate research:", error);
-      toast.error(error.message || "Failed to generate research plan. Please try again.");
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Failed to generate research plan. Please try again.",
+        ),
+      );
     },
   });
 };

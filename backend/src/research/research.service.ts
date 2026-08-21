@@ -6,6 +6,7 @@ import { SearchService } from '../search/search.service';
 import { SearchResult } from '../common/search-result.interface';
 import { EvaluationService } from '../evaluation/evaluation.service';
 import { SourceEvaluation } from '../evaluation/evaluation.interface';
+import { UserApiKeysService } from '../settings/user-api-keys.service';
 import type { Database } from '../db/db';
 import { DATABASE } from '../db/database.module';
 import { researchSessions } from '../db/schema';
@@ -31,8 +32,9 @@ export class ResearchService {
     private readonly plannerService: PlannerService,
     private readonly searchService: SearchService,
     private readonly evaluationService: EvaluationService,
+    private readonly userApiKeysService: UserApiKeysService,
     @Inject(DATABASE) private readonly db: Database,
-  ) { }
+  ) {}
 
   async createResearch(
     dto: CreateResearchDto,
@@ -42,18 +44,24 @@ export class ResearchService {
       `Processing research request for topic: "${dto.topic}" (user: ${userId})`,
     );
 
-    const plan = await this.plannerService.generatePlan(dto);
+    const { geminiApiKey, exaApiKey, maxSources } =
+      await this.userApiKeysService.requireKeys(userId);
+
+    const plan = await this.plannerService.generatePlan(dto, geminiApiKey);
 
     this.logger.log(
       `Fetching real search results for ${Math.min(
         plan.searchQueries.length,
         5,
-      )} of ${plan.searchQueries.length} generated quer${plan.searchQueries.length === 1 ? 'y' : 'ies'
+      )} of ${plan.searchQueries.length} generated quer${
+        plan.searchQueries.length === 1 ? 'y' : 'ies'
       }`,
     );
 
     const results = await this.searchService.searchQueries(
       plan.searchQueries,
+      exaApiKey,
+      { minResults: maxSources },
     );
 
     console.log('ResearchService: sources before evaluation', results);
@@ -61,6 +69,8 @@ export class ResearchService {
       dto.topic,
       plan.researchGoal,
       results,
+      geminiApiKey,
+      maxSources,
     );
     console.log('ResearchService: evaluated results', evaluatedResults);
 
@@ -111,10 +121,7 @@ export class ResearchService {
       .select()
       .from(researchSessions)
       .where(
-        and(
-          eq(researchSessions.id, id),
-          eq(researchSessions.userId, userId),
-        ),
+        and(eq(researchSessions.id, id), eq(researchSessions.userId, userId)),
       );
 
     if (!session) {
@@ -128,10 +135,7 @@ export class ResearchService {
     const [session] = await this.db
       .delete(researchSessions)
       .where(
-        and(
-          eq(researchSessions.id, id),
-          eq(researchSessions.userId, userId),
-        ),
+        and(eq(researchSessions.id, id), eq(researchSessions.userId, userId)),
       )
       .returning({ id: researchSessions.id });
 

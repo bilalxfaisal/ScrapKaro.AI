@@ -17,9 +17,12 @@ export interface ResearchPlan {
 export class PlannerService {
   private readonly logger = new Logger(PlannerService.name);
 
-  constructor(private readonly aiService: AiService) { }
+  constructor(private readonly aiService: AiService) {}
 
-  async generatePlan(dto: CreateResearchDto): Promise<ResearchPlan> {
+  async generatePlan(
+    dto: CreateResearchDto,
+    apiKey?: string,
+  ): Promise<ResearchPlan> {
     const { topic, purpose, sourceTypes, focus } = dto;
 
     const systemPrompt = `You are an expert research assistant. Return only a JSON object with these exact fields: researchGoal, searchQueries, keywords, recommendedSources. Use concise values. Do not add any text outside the JSON.`;
@@ -36,6 +39,7 @@ Focus: ${focus ?? 'Not specified'}`;
       raw = await this.aiService.generateCompletion(systemPrompt, userPrompt, {
         model: 'gemini-3.6-flash',
         maxOutputTokens: 1200,
+        apiKey,
       });
     } catch (error) {
       throw error;

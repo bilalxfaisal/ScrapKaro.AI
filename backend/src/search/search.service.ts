@@ -8,7 +8,14 @@ import {
 
 /** MVP guardrails — see project notes for why these are hardcoded for now. */
 const MAX_QUERIES = 5;
-const RESULTS_PER_QUERY = 5;
+const BASE_RESULTS_PER_QUERY = 5;
+const MAX_RESULTS_PER_QUERY = 10;
+const RESULT_OVERFETCH_FACTOR = 2;
+
+export interface SearchOptions {
+  /** Minimum number of deduplicated results the caller wants back. */
+  minResults?: number;
+}
 
 @Injectable()
 export class SearchService {
@@ -23,16 +30,32 @@ export class SearchService {
    * A failure on one query does not fail the whole batch — it's logged and
    * skipped so the remaining queries can still contribute results.
    */
-  async searchQueries(queries: string[]): Promise<SearchResult[]> {
+  async searchQueries(
+    queries: string[],
+    apiKey?: string,
+    options: SearchOptions = {},
+  ): Promise<SearchResult[]> {
     const limitedQueries = queries.slice(0, MAX_QUERIES);
 
     if (limitedQueries.length === 0) {
       return [];
     }
 
+    const resultsPerQuery = Math.min(
+      MAX_RESULTS_PER_QUERY,
+      Math.max(
+        BASE_RESULTS_PER_QUERY,
+        Math.ceil(
+          ((options.minResults ?? BASE_RESULTS_PER_QUERY) *
+            RESULT_OVERFETCH_FACTOR) /
+            limitedQueries.length,
+        ),
+      ),
+    );
+
     const settled = await Promise.allSettled(
       limitedQueries.map((query) =>
-        this.exaProvider.search(query, RESULTS_PER_QUERY),
+        this.exaProvider.search(query, resultsPerQuery, apiKey),
       ),
     );
 
@@ -74,7 +97,10 @@ export class SearchService {
 
   private cleanUrl(url: string): string {
     // Remove markdown syntax, escaped characters, and backslashes
-    return url.replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '').replace(/\\\\/g, '').trim();
+    return url
+      .replace(/[\\[\\]\\(>\\)\\`\\'\\"]/g, '')
+      .replace(/\\\\/g, '')
+      .trim();
   }
 
   /** Deterministic, non-AI URL-based categorization (per project rules). */
@@ -90,7 +116,13 @@ export class SearchService {
     const path = parsed.pathname.toLowerCase();
 
     // academic: arxiv.org, ieee.org, acm.org, springer.com, elsevier.com, university domains (.edu)
-    const academicDomains = ['arxiv.org', 'ieee.org', 'acm.org', 'springer.com', 'elsevier.com'];
+    const academicDomains = [
+      'arxiv.org',
+      'ieee.org',
+      'acm.org',
+      'springer.com',
+      'elsevier.com',
+    ];
     if (academicDomains.includes(domain) || domain.endsWith('.edu')) {
       return 'academic';
     }
@@ -99,7 +131,11 @@ export class SearchService {
       return 'pdf';
     }
 
-    const isArticle = path.includes('/blog/') || path.includes('/news/') || path.includes('/tutorial/') || path.includes('/post/');
+    const isArticle =
+      path.includes('/blog/') ||
+      path.includes('/news/') ||
+      path.includes('/tutorial/') ||
+      path.includes('/post/');
     if (isArticle) {
       return 'article';
     }

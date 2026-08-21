@@ -27,7 +27,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 @UseGuards(AuthGuard)
 @Controller('research')
 export class ResearchController {
-  constructor(private readonly researchService: ResearchService) { }
+  constructor(private readonly researchService: ResearchService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -35,7 +35,7 @@ export class ResearchController {
     summary: 'Create a research request',
     description:
       'Submit a research request. The backend sends the data to Gemini to generate a structured research plan ' +
-      '(research.plan), then runs the plan\'s searchQueries (max 5) against Exa to fetch real internet results, ' +
+      "(research.plan), then runs the plan's searchQueries (max 5) against Exa to fetch real internet results, " +
       'normalizes/deduplicates them, and returns them alongside the plan (research.results).',
   })
   @ApiBody({ type: CreateResearchDto })
@@ -130,23 +130,24 @@ export class ResearchController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get the authenticated user\'s research history' })
+  @ApiOperation({ summary: "Get the authenticated user's research history" })
   getHistory(@CurrentUser() user: AuthenticatedUser) {
     return this.researchService.getHistory(user.id);
   }
 
   @Get('history/:id')
-  @ApiOperation({ summary: 'Get a saved research session owned by the authenticated user' })
-  getSession(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
+  @ApiOperation({
+    summary: 'Get a saved research session owned by the authenticated user',
+  })
+  getSession(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.researchService.getSession(id, user.id);
   }
 
   @Delete('history/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a saved research session owned by the authenticated user' })
+  @ApiOperation({
+    summary: 'Delete a saved research session owned by the authenticated user',
+  })
   deleteSession(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,

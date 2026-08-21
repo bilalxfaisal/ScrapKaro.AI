@@ -11,6 +11,7 @@ interface GeminiRequestOptions {
   responseSchema?: unknown;
   maxOutputTokens?: number;
   temperature?: number;
+  apiKey?: string;
 }
 
 interface GeminiRequestTrace {
@@ -28,7 +29,11 @@ interface GeminiRequestTrace {
 export class AiService {
   private readonly gemini: GoogleGenAI;
   private readonly logger = new Logger(AiService.name);
-  private readonly fallbackModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-pro-preview'];
+  private readonly fallbackModels = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3-pro-preview',
+  ];
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -84,6 +89,9 @@ export class AiService {
     const promptSize = systemPrompt.length + userPrompt.length;
     const estimatedTokens = this.estimateTokens(systemPrompt, userPrompt);
     const fallbackModels = this.getModelCandidates(options.model);
+    const client = options.apiKey
+      ? new GoogleGenAI({ apiKey: options.apiKey })
+      : this.gemini;
 
     let lastError: unknown;
 
@@ -91,14 +99,16 @@ export class AiService {
       for (let attempt = 0; attempt <= 3; attempt += 1) {
         const startedAt = Date.now();
         try {
-          const response = await this.gemini.models.generateContent({
+          const response = await client.models.generateContent({
             model,
             contents: userPrompt,
             config: {
               systemInstruction: systemPrompt,
               responseMimeType: 'application/json',
               responseSchema: options.responseSchema,
-              maxOutputTokens: options.maxOutputTokens ?? this.defaultMaxOutputTokens(systemPrompt, userPrompt),
+              maxOutputTokens:
+                options.maxOutputTokens ??
+                this.defaultMaxOutputTokens(systemPrompt, userPrompt),
               temperature: options.temperature ?? 0.1,
             },
           });
@@ -106,7 +116,9 @@ export class AiService {
           const text = this.extractText(response);
 
           if (!text) {
-            throw new InternalServerErrorException('Gemini returned an empty response.');
+            throw new InternalServerErrorException(
+              'Gemini returned an empty response.',
+            );
           }
 
           const trace: GeminiRequestTrace = {
@@ -142,7 +154,10 @@ export class AiService {
             continue;
           }
 
-          if (shouldFallback && model !== fallbackModels[fallbackModels.length - 1]) {
+          if (
+            shouldFallback &&
+            model !== fallbackModels[fallbackModels.length - 1]
+          ) {
             break;
           }
 
@@ -152,28 +167,41 @@ export class AiService {
     }
 
     const error = lastError as Error;
-    this.logger.error(`Gemini failed after all retries and fallbacks | message=${error?.message ?? 'unknown'}`);
+    this.logger.error(
+      `Gemini failed after all retries and fallbacks | message=${error?.message ?? 'unknown'}`,
+    );
     throw new InternalServerErrorException(
       `Gemini API error: ${error?.message ?? 'Unknown Gemini failure'}`,
     );
   }
 
-  private defaultMaxOutputTokens(systemPrompt: string, userPrompt: string): number {
+  private defaultMaxOutputTokens(
+    systemPrompt: string,
+    userPrompt: string,
+  ): number {
     const estimatedChars = systemPrompt.length + userPrompt.length;
     return Math.min(2048, Math.max(1024, Math.ceil(estimatedChars / 3)));
   }
 
   private getModelCandidates(preferredModel?: string): string[] {
-    const models = new Set<string>([preferredModel, ...this.fallbackModels].filter(Boolean) as string[]);
+    const models = new Set<string>(
+      [preferredModel, ...this.fallbackModels].filter(Boolean) as string[],
+    );
     return Array.from(models);
   }
 
   private shouldRetry(status?: number, message = ''): boolean {
-    return [429, 500, 503, 504].includes(status ?? 0) || /unavailable|overloaded|timeout|resource exhausted/i.test(message);
+    return (
+      [429, 500, 503, 504].includes(status ?? 0) ||
+      /unavailable|overloaded|timeout|resource exhausted/i.test(message)
+    );
   }
 
   private shouldFallback(status?: number, message = ''): boolean {
-    return [400, 401, 403, 404].includes(status ?? 0) || /permission|model.*not|not available|unsupported/i.test(message);
+    return (
+      [400, 401, 403, 404].includes(status ?? 0) ||
+      /permission|model.*not|not available|unsupported/i.test(message)
+    );
   }
 
   private extractStatus(error: unknown): number | undefined {
@@ -194,14 +222,22 @@ export class AiService {
   }
 
   private extractText(response: unknown): string {
-    if (typeof response === 'object' && response !== null && 'text' in response) {
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'text' in response
+    ) {
       const text = (response as { text?: string }).text;
       if (typeof text === 'string' && text.trim()) {
         return text;
       }
     }
 
-    const candidates = (response as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }).candidates;
+    const candidates = (
+      response as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      }
+    ).candidates;
     if (Array.isArray(candidates)) {
       const parts = candidates[0]?.content?.parts;
       if (Array.isArray(parts)) {
@@ -217,7 +253,9 @@ export class AiService {
 
   private extractFinishReason(response: unknown): string | undefined {
     if (typeof response === 'object' && response !== null) {
-      const candidates = (response as { candidates?: Array<{ finishReason?: string }> }).candidates;
+      const candidates = (
+        response as { candidates?: Array<{ finishReason?: string }> }
+      ).candidates;
       if (Array.isArray(candidates) && candidates[0]?.finishReason) {
         return candidates[0].finishReason;
       }
@@ -227,7 +265,9 @@ export class AiService {
 
   private extractSafetyBlockReason(response: unknown): string | undefined {
     if (typeof response === 'object' && response !== null) {
-      const promptFeedback = (response as { promptFeedback?: { blockReason?: string } }).promptFeedback;
+      const promptFeedback = (
+        response as { promptFeedback?: { blockReason?: string } }
+      ).promptFeedback;
       if (promptFeedback?.blockReason) {
         return promptFeedback.blockReason;
       }

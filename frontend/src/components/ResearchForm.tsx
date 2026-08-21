@@ -12,12 +12,16 @@ import { researchFormSchema } from "@/types/research"
 import type { ResearchFormData } from "@/types/research"
 import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from "lucide-react"
 import { useCreateResearch } from "@/hooks/useCreateResearch"
+import { useApiKeysStatus } from "@/hooks/useApiKeys"
+import { MISSING_API_KEYS_MESSAGE } from "@/services/settings.service"
+import { toast } from "sonner"
 
 const stepNames = ["Topic", "Purpose", "Sources", "Focus"]
 
 export const ResearchForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1)
   const { mutate: createResearch, isPending } = useCreateResearch()
+  const { data: keyStatus } = useApiKeysStatus()
 
   const methods = useForm<ResearchFormData>({
     resolver: zodResolver(researchFormSchema),
@@ -56,6 +60,11 @@ export const ResearchForm: React.FC = () => {
   const onSubmit = (data: ResearchFormData) => {
     if (currentStep !== 4) {
       setCurrentStep(4)
+      return
+    }
+
+    if (keyStatus && (!keyStatus.geminiConfigured || !keyStatus.exaConfigured)) {
+      toast.error(MISSING_API_KEYS_MESSAGE)
       return
     }
 

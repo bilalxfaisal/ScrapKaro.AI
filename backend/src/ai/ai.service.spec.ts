@@ -23,10 +23,18 @@ describe('AiService', () => {
 
   it('retries transient failures and falls back to another model', async () => {
     mockGenerateContent
-      .mockRejectedValueOnce(Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }))
-      .mockRejectedValueOnce(Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }))
-      .mockRejectedValueOnce(Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }))
-      .mockRejectedValueOnce(Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }))
+      .mockRejectedValueOnce(
+        Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error('503 UNAVAILABLE'), { status: 503 }),
+      )
       .mockResolvedValueOnce({
         text: 'ok',
         candidates: [{ finishReason: 'STOP' }],

@@ -38,8 +38,14 @@ export class ExaProvider {
    *
    * @param query the search query text
    * @param numResults max number of results Exa should return for this query
+   * @param apiKey optional per-request API key (e.g. a user's BYOK key);
+   *               falls back to the server-configured EXA_API_KEY
    */
-  async search(query: string, numResults = 5): Promise<ExaApiSearchResponse> {
+  async search(
+    query: string,
+    numResults = 5,
+    apiKey?: string,
+  ): Promise<ExaApiSearchResponse> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -50,7 +56,7 @@ export class ExaProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
+          'x-api-key': apiKey ?? this.apiKey,
         },
         body: JSON.stringify({
           query,

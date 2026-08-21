@@ -1,0 +1,1 @@
+ALTER TABLE "user_api_keys" ADD COLUMN "max_sources" integer DEFAULT 5 NOT NULL;
