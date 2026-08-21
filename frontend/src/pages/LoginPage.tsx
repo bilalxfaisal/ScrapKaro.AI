@@ -87,8 +87,12 @@ export const LoginPage: React.FC = () => {
       {/* Login content */}
       <main className="container mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-16">
         <div className="flex w-full max-w-md animate-fade-in-up flex-col items-center text-center">
-          <div className="mb-8 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card/80 shadow-soft-md ring-1 ring-border">
-            <Sparkles className="h-7 w-7 text-primary" />
+          <div className="mb-8 flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-2xl border border-border bg-card/80 shadow-soft-md ring-1 ring-border">
+            <img
+              src="/scrapkarologo2.png"
+              alt="ScrapKaro Logo"
+              className="h-[70%] w-[70%] object-contain"
+            />
           </div>
 
           <h1 className="font-display text-[2.5rem] font-medium leading-[1.1] tracking-tight text-foreground sm:text-[3rem]">

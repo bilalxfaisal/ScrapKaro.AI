@@ -35,8 +35,12 @@ export const NotFoundPage: React.FC = () => {
 
       {/* Content */}
       <main className="container mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-        <div className="animate-fade-in-up mb-7 flex h-20 w-20 items-center justify-center rounded-3xl border border-border bg-card shadow-soft-md">
-          <Compass className="h-9 w-9 animate-float text-primary" />
+        <div className="mb-8 flex h-[5.25rem] w-[5.25rem] items-center justify-center overflow-hidden rounded-2xl border border-border bg-card/80 shadow-soft-md ring-1 ring-border">
+          <img
+            src="/scrapkarologo2.png"
+            alt="ScrapKaro Logo"
+            className="h-[70%] w-[70%] object-contain"
+          />
         </div>
 
         <p className="label-eyebrow animate-fade-in-up animation-delay-100">
