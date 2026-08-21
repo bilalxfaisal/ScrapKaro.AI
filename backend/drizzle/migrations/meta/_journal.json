@@ -15,6 +15,13 @@
       "when": 1786430758173,
       "tag": "0001_serious_gwen_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786620442378,
+      "tag": "0002_remarkable_grandmaster",
+      "breakpoints": true
     }
   ]
 }

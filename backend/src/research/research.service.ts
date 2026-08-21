@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { CreateResearchDto } from './dto/create-research.dto';
 import { PlannerService, ResearchPlan } from './planner.service';
 import { SearchService } from '../search/search.service';
@@ -34,8 +34,13 @@ export class ResearchService {
     @Inject(DATABASE) private readonly db: Database,
   ) { }
 
-  async createResearch(dto: CreateResearchDto): Promise<ResearchResult> {
-    this.logger.log(`Processing research request for topic: "${dto.topic}"`);
+  async createResearch(
+    dto: CreateResearchDto,
+    userId: string,
+  ): Promise<ResearchResult> {
+    this.logger.log(
+      `Processing research request for topic: "${dto.topic}" (user: ${userId})`,
+    );
 
     const plan = await this.plannerService.generatePlan(dto);
 
@@ -62,6 +67,7 @@ export class ResearchService {
     await this.db
       .insert(researchSessions)
       .values({
+        userId,
         topic: dto.topic,
         purpose: dto.purpose,
         focus: dto.focus || null,
@@ -84,7 +90,7 @@ export class ResearchService {
     };
   }
 
-  async getHistory() {
+  async getHistory(userId: string) {
     return this.db
       .select({
         id: researchSessions.id,
@@ -96,14 +102,20 @@ export class ResearchService {
         createdAt: researchSessions.createdAt,
       })
       .from(researchSessions)
+      .where(eq(researchSessions.userId, userId))
       .orderBy(desc(researchSessions.createdAt));
   }
 
-  async getSession(id: string) {
+  async getSession(id: string, userId: string) {
     const [session] = await this.db
       .select()
       .from(researchSessions)
-      .where(eq(researchSessions.id, id));
+      .where(
+        and(
+          eq(researchSessions.id, id),
+          eq(researchSessions.userId, userId),
+        ),
+      );
 
     if (!session) {
       throw new NotFoundException('Research session not found.');
@@ -112,10 +124,15 @@ export class ResearchService {
     return session;
   }
 
-  async deleteSession(id: string) {
+  async deleteSession(id: string, userId: string) {
     const [session] = await this.db
       .delete(researchSessions)
-      .where(eq(researchSessions.id, id))
+      .where(
+        and(
+          eq(researchSessions.id, id),
+          eq(researchSessions.userId, userId),
+        ),
+      )
       .returning({ id: researchSessions.id });
 
     if (!session) {

@@ -14,6 +14,12 @@ export function createDrizzleDatabase(
       rejectUnauthorized: false,
     },
   });
-
+console.log(
+  "DB URL:",
+  process.env.DATABASE_URL?.replace(
+    /:\/\/([^:]+):([^@]+)@/,
+    "://$1:****@",
+  ),
+);
   return drizzle(pool, { schema });
 }

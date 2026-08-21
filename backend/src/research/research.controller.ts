@@ -7,17 +7,24 @@ import {
   HttpStatus,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ResearchService } from './research.service';
 import { CreateResearchDto } from './dto/create-research.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.types';
 
 @ApiTags('Research')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 @Controller('research')
 export class ResearchController {
   constructor(private readonly researchService: ResearchService) { }
@@ -115,26 +122,35 @@ export class ResearchController {
       },
     },
   })
-  create(@Body() createResearchDto: CreateResearchDto) {
-    return this.researchService.createResearch(createResearchDto);
+  create(
+    @Body() createResearchDto: CreateResearchDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.researchService.createResearch(createResearchDto, user.id);
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get saved research history' })
-  getHistory() {
-    return this.researchService.getHistory();
+  @ApiOperation({ summary: 'Get the authenticated user\'s research history' })
+  getHistory(@CurrentUser() user: AuthenticatedUser) {
+    return this.researchService.getHistory(user.id);
   }
 
   @Get('history/:id')
-  @ApiOperation({ summary: 'Get a saved research session' })
-  getSession(@Param('id') id: string) {
-    return this.researchService.getSession(id);
+  @ApiOperation({ summary: 'Get a saved research session owned by the authenticated user' })
+  getSession(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.researchService.getSession(id, user.id);
   }
 
   @Delete('history/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a saved research session' })
-  deleteSession(@Param('id') id: string) {
-    return this.researchService.deleteSession(id);
+  @ApiOperation({ summary: 'Delete a saved research session owned by the authenticated user' })
+  deleteSession(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.researchService.deleteSession(id, user.id);
   }
 }

@@ -1,6 +1,7 @@
 import React from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Search, History, FileText } from "lucide-react"
+import { UserMenu } from "@/components/UserMenu"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -63,6 +64,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               )
             })}
           </nav>
+
+          <div className="flex items-center">
+            <UserMenu />
+          </div>
         </div>
       </header>
 
