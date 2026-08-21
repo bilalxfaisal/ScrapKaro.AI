@@ -6,11 +6,20 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS — allow the frontend dev server
+  // Enable graceful shutdown (SIGTERM/SIGINT) for platform redeploys
+  app.enableShutdownHooks();
+
+  // CORS — configurable via CORS_ORIGIN (comma-separated), falls back to
+  // the production frontend URL
+  const corsOrigins = (
+    process.env.CORS_ORIGIN ?? 'https://scrap-karo-ai.vercel.app'
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: [
-      'https://scrap-karo-ai.vercel.app',
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -40,7 +49,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT ?? 3000;
+  const port = Number(process.env.PORT) || 3000;
 
   await app.listen(port, '0.0.0.0');
 
