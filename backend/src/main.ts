@@ -8,7 +8,10 @@ async function bootstrap() {
 
   // CORS — allow the frontend dev server
   app.enableCors({
-    origin: ['http://localhost:5151'],
+    origin: [
+      'http://localhost:5151',
+      'https://scrap-karo-ai.vercel.app',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -40,7 +43,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Server running on http://localhost:${port}`);
   console.log(`📚 Swagger docs at http://localhost:${port}/api`);
